@@ -117,14 +117,17 @@ ssize_t nb_recv(connection *c) {
 So this function can be combined with event-driven model.
 
 ```c
+event *e;
+connection *c
+e = create_event()
+c = open_read_connection(fd);
 
-ssize_t  n;
-event   *e;
-connection *c;
+e->data = c;
+e->handler = consume;
+register(looper, e);
 
 void consume(event *e) {
   ssize_t  n;
-  event   *ev;
   connection *c;
 
   c = (connection *) e->data;
@@ -136,15 +139,19 @@ void consume(event *e) {
   n = nb_recv(c->fd, c->buf, c->size);
 
   if (n>0) {
+  
     process_buf(c);
+    
   } else if (n==0) {
+  
     process_eof(c);
+    
   } else if (n==SOCKET_AGAIN) {
-    e = create_event();
-    e->data = c;
+  
     e->timeout = 5000+current_time(); // 5000 ms
     add_to_timer(e);
     register(e);
+    
   } else {
     process_error();
   }
