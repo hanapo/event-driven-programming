@@ -124,6 +124,8 @@ c = open_read_connection(fd);
 
 e->data = c;
 e->handler = consume;
+e->timeout = 5000+current_time();
+add_to_timer(e);
 register(looper, e);
 
 void consume(event *e) {
@@ -150,7 +152,7 @@ void consume(event *e) {
   
     e->timeout = 5000+current_time(); // 5000 ms
     add_to_timer(e);
-    register(e);
+    register(looper, e);
     
   } else {
     process_error();
