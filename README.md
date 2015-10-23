@@ -105,8 +105,9 @@ ssize_t ngx_unix_recv(int fd, char *buf, int size) {
         break;
     }
     
-  } while(err == NGX_EINTR);
+  } while(err == NGX_EINTR); // signal interupt, will continue
   
   retirn n;
 }
 ```
+So this function can be combined with event-driven model.
