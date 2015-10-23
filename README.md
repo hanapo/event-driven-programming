@@ -4,7 +4,7 @@
 
 Let's define event and event handler
 ```c
-  void (*event_handler)(evnet *);
+  typedef void (*event_handler)(evnet *);
 
   typedef struct event {
     event_handler  handler;
@@ -32,7 +32,6 @@ The looper routine
   while (forever) {
     events = loop(looper, interval); // block for time interval specified and return triggered events 
     for (e in events) {
-      e->ready = 1;
       e->handler(e);
     }
   }
@@ -78,7 +77,7 @@ What if the event never happens?
 A form of input/output processing that permits other processing to continue before the transmission has finished.
 To realize this, Linux kernel supports non-blocking sockets.
 
-``` c
+```c
 nb = 1;
 ioctl(socketfd, FIONBIO, &nb); // set socket as non-blocking mode
 ```
@@ -87,27 +86,69 @@ The io syscall like recv() and write() can now operate in non-blocking mode on t
 - If no messages are available at the socket, the value -1 is returned _immediately_ and the external variable errno is set to EAGAIN or EWOULDBLOCK. 
   
 ``` c
-ssize_t ngx_unix_recv(int fd, char *buf, int size) {
+ssize_t nb_recv(connection *c) {
   ssize_t     n;
   ngx_err_t   err;
   
   do {
-    n = recv(fd, buf, size, 0);
-    if (n >= 0) {
+    n = recv(c->fd, c->buf, c->size, 0);
+    if (n > 0) {
       return n;
     }
-    err = ngx_socket_errno; // actually it's errno
     
-    if (err == NGX_EAGAIN || err == NGX_EINTR) {
-      n = NGX_AGAIN;
+    if (n == 0) {
+      c->eof = 1;
+      return n;
+    }
+      
+    err = errno;
+    if (err == EAGAIN || err == EINTR) {
+      n = SOCKET_AGAIN;
     } else {
-        n = NGX_ERROR; /* recv erro */
+        n = SOCKET_ERROR; /* recv error happens */
         break;
     }
     
-  } while(err == NGX_EINTR); // signal interupt, will continue
+  } while(err == EINTR); // signal interupt, will continue
   
   retirn n;
 }
 ```
 So this function can be combined with event-driven model.
+
+```c
+
+ssize_t  n;
+event   *e;
+connection *c;
+
+void consume(event *e) {
+  ssize_t  n;
+  event   *ev;
+  connection *c;
+
+  c = (connection *) e->data;
+  if (e->timedout) {
+      process_timeout(c);
+      return;
+  }
+
+  n = nb_recv(c->fd, c->buf, c->size);
+
+  if (n>0) {
+    process_buf(c);
+  } else if (n==0) {
+    process_eof(c);
+  } else if (n==SOCKET_AGAIN) {
+    e = create_event();
+    e->data = c;
+    e->timeout = 5000+current_time(); // 5000 ms
+    add_to_timer(e);
+    register(e);
+  } else {
+    process_error();
+  }
+}
+```
+  
+
