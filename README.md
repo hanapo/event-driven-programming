@@ -21,7 +21,7 @@ Then we register the event to an event looper
     }
   }
   e = create_event();
-  e->handler = process_event;
+  e->handler = consume;
 
 ```
 The looper routine
