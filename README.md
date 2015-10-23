@@ -1,7 +1,8 @@
 # event-driven-programming
 - The flow of program is determined by events
+- When a event is triggered, perform the pre-defined methods
 
-let's define event and event handler
+Let's define event and event handler
 ```c
   void (*event_handler)(evnet *);
 
@@ -11,7 +12,7 @@ let's define event and event handler
   }
   
 ```
-we register the event to an event looper
+Then we register the event to an event looper
 ```c#
   
   void consume(event *e) {
@@ -26,7 +27,7 @@ we register the event to an event looper
 The looper routine
 ``` c#
 
-  register_event(looper, e, fd);
+  register_event(looper, e, fd, flag); // when fd is ready for operation, triggers event e
   
   while (forever) {
     events = loop(looper, interval); // block for time interval specified and return triggered events 
@@ -45,7 +46,7 @@ What if the event never happens?
   e->timeout = current_time() + timeout;  // set as an absolute moment
   
   add_to_timer(e);
-  register(looper, e);
+  register(looper, e, fd, flag);
   
   /* looper routine with timer */
   while (forever) {
