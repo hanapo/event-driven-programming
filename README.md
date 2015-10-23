@@ -73,6 +73,40 @@ What if the event never happens?
     }
   }
     
-```  
-  
+```
+# Asynchronous IO
+A form of input/output processing that permits other processing to continue before the transmission has finished.
+To realize this, Linux kernel supports non-blocking sockets.
 
+``` c
+nb = 1;
+ioctl(socketfd, FIONBIO, &nb); // set socket as non-blocking mode
+```
+The io syscall like recv() and write() can now operate in non-blocking mode on the socket.
+- If some messages are processed, return the length of the message processed
+- If no messages are available at the socket, the value -1 is returned _immediately_ and the external variable errno is set to EAGAIN or EWOULDBLOCK. 
+  
+``` c
+ssize_t ngx_unix_recv(int fd, char *buf, int size) {
+  ssize_t     n;
+  ngx_err_t   err;
+  
+  do {
+    n = recv(fd, buf, size, 0);
+    if (n >= 0) {
+      return n;
+    }
+    err = ngx_socket_errno; // actually it's errno
+    
+    if (err == NGX_EAGAIN || err == NGX_EINTR) {
+      n = NGX_AGAIN;
+    } else {
+        n = NGX_ERROR; /* recv erro */
+        break;
+    }
+    
+  } while(err == NGX_EINTR);
+  
+  retirn n;
+}
+```
