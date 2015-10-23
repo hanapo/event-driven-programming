@@ -1,4 +1,4 @@
-# event-driven-programming
+# Event-Driven-Programming
 - The flow of program is determined by events
 - When a event is triggered, perform the pre-defined methods
 
